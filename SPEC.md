@@ -8,6 +8,11 @@ long-lead parts get flagged proactively and the BOM can be pre-sourced.
 This is a port of the ProvenMetal KiCad plugin to Altium. The server contract is
 unchanged; only the CAD-side implementation differs.
 
+> Note: this spec describes the original **script edition** (`plugin/`,
+> DelphiScript + PowerShell). The shipping implementation is the compiled C#
+> extension in `extension/` — same behavior, same server contract, same
+> settings; the CAD-side mechanics (BOM read, auth, UI) live in-process there.
+
 ---
 
 ## 1. Goal & scope

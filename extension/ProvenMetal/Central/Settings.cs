@@ -17,6 +17,7 @@ namespace ProvenMetal.Central
         public bool ExcludeDnp = true;
         public bool Writeback = false;
         public string WritebackFieldPrefix = "PM";
+        public bool Debug = false;
         public Dictionary<string, string> FieldMap = new Dictionary<string, string>();
 
         public static Settings Load()
@@ -34,6 +35,7 @@ namespace ProvenMetal.Central
                 if (j["exclude_dnp"] != null) s.ExcludeDnp = (bool)j["exclude_dnp"];
                 if (j["writeback"] != null) s.Writeback = (bool)j["writeback"];
                 if (j["writeback_field_prefix"] != null) s.WritebackFieldPrefix = (string)j["writeback_field_prefix"] ?? s.WritebackFieldPrefix;
+                if (j["debug"] != null) s.Debug = (bool)j["debug"];
 
                 var fm = j["field_map"] as JObject;
                 if (fm != null)

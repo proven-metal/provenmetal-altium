@@ -42,8 +42,11 @@ namespace ProvenMetal
                     }
                     catch (Exception ex)
                     {
+                        Log.Write("command failed: " + ex);
                         if (_noGuiMode) throw;
-                        MessageBox.Show(ex.Message, "ProvenMetal", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                        MessageBox.Show(
+                            ex.Message + "\r\n\r\nLog: " + Path.Combine(Util.SettingsDir(), "last-run.log"),
+                            "ProvenMetal", MessageBoxButtons.OK, MessageBoxIcon.Hand);
                     }
                 }));
 

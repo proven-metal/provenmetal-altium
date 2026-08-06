@@ -167,7 +167,8 @@ namespace ProvenMetal.Altium
                 bool fitted = ComponentFitted(comp, part, variant);
                 row["dnp"] = fitted ? "0" : "1";
 
-                if (i < 15)
+                // Verbose per-component dump: opt-in via settings.json {"debug": true}.
+                if (settings.Debug && i < 60)
                     Log.Write("comp[" + i + "] des='" + des + "' params=" + pmap.Count +
                               " names=[" + string.Join(",", new List<string>(pmap.Keys).ToArray()) + "]" +
                               " mpn='" + row["mpn"] + "' lcsc='" + row["lcsc"] + "' value='" + row["value"] +

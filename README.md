@@ -1,224 +1,116 @@
-# ProvenMetal Altium Plugin
+# ProvenMetal for Altium Designer
 
-Sends an Altium project's BOM to ProvenMetal Central, sources every part against
-distributor stock and lead time, and flags anything that is not in stock for the
-full build or sourceable within one week.
+Checks your BOM against real distributor stock, from inside Altium. One click:
+it reads the compiled BOM of the focused project, sources every line, and tells
+you which parts are in stock for your build quantity — before you order boards.
 
-This is the Altium port of the ProvenMetal KiCad plugin. It talks to the same
-ProvenMetal Central endpoints (`/api/kicad/*`) and uses the same sign-in flow, so
-no server changes are required.
+- **pass** — in stock for the whole build, or lead time within 7 days
+- **review** — not enough data to decide (usually: no part number)
+- **fail** — out of stock everywhere, or a long/unknown lead time
 
-## Two editions
-
-- **`extension/` — compiled C# extension (recommended).** Installs like a real
-  Altium add-in (Extensions & Updates), adds a **Source with ProvenMetal** button
-  to the Schematic/PCB Tools menus, and does everything in‑process (no PowerShell).
-  Needs a one‑time build in Windows (Visual Studio Build Tools). See
-  [`extension/README.md`](extension/README.md).
-- **`plugin/` — DelphiScript script + PowerShell helper.** No build toolchain
-  required; open the `.PrjScr` and run it. Documented below. Good as a fallback or
-  for quick trials.
-
-The rest of this file documents the DelphiScript edition.
-
-## How it works
-
-1. Run **Source with ProvenMetal** in Altium (DXP > Run Script, or a toolbar
-   button you bind to it).
-2. The plugin compiles the project and reads the flattened BOM (designators,
-   Comment/value, footprint, and MPN / Manufacturer / LCSC / Digikey / Mouser
-   parameters), honouring the active assembly variant and "No BOM" components.
-3. A branded ProvenMetal window opens immediately and shows live progress while it
-   signs you in (browser, once) and sends the BOM.
-4. The server sources each part and returns a result:
-   - **pass**: in stock for the whole build, or sourceable within a week.
-   - **review**: not enough data to decide (left for manual sourcing).
-   - **fail**: not stocked anywhere, or out of stock with a long lead.
-5. The same window fills in the verdict (parts / pass / review / fail, with the
-   fail count in signal red) and the full report opens in your browser. An
-   "Open report" button reopens it.
-
-## Architecture
-
-Altium plugins are written in **DelphiScript** (Altium's scripting language), which
-has full access to the design API but is poor at HTTPS/OAuth/JSON. So the work is
-split, exactly mirroring how the KiCad plugin shelled out to `kicad-cli`:
-
-- **DelphiScript** (`plugin/*.pas`) reads the BOM from the project via the Design
-  Manager API, groups it into orderable lines, shows the UI, and (optionally)
-  writes results back into schematic parameters.
-- **PowerShell** (`plugin/helper/pm_client.ps1`) does everything network-shaped:
-  fetch server config, Supabase loopback-PKCE sign-in, token cache/refresh, the
-  authenticated BOM push, and all JSON. It ships with Windows; nothing to install.
-
-DelphiScript writes the request as JSON and reads back a flat `key=value` result
-file, so it never has to parse JSON.
-
-```
-plugin/
-  ProvenMetal.PrjScr           Altium script project (open this)
-  ProvenMetal_Main.pas         entry points (Source / Login / Logout / SetBaseUrl)
-  ProvenMetal_Bom.pas          read the flattened BOM via the Design Manager API
-  ProvenMetal_Fields.pas       parameter-name -> canonical column mapping
-  ProvenMetal_Grouping.pas     rows -> orderable lines (line_key, ref-ranges, DNP)
-  ProvenMetal_Verdict.pas      local mirror of the server verdict rule
-  ProvenMetal_Settings.pas     settings.json, %APPDATA% paths, sidecar
-  ProvenMetal_Json.pas         JSON build + tolerant scalar reader
-  ProvenMetal_Client.pas       bridge to the PowerShell helper
-  ProvenMetal_UI.pas           results dialog, progress, errors, browser, log
-  ProvenMetal_Writeback.pas    optional: write PM_* params onto components
-  helper/pm_client.ps1         config / login / push / latest / logout
-```
-
-## Requirements
-
-- Altium Designer (Windows). Uses the Design Manager (Workspace Manager) API and
-  the Schematic API, both present in current Altium versions.
-- Windows PowerShell 5.1 (bundled with Windows) or PowerShell 7.
-- Access to a ProvenMetal Central instance.
+The verdict shows in a window in Altium; a full report opens in your browser.
 
 ## Install
 
-### One command (recommended, esp. on Parallels)
-
-From Windows, run the bundled installer against this repo. It copies the plugin to
-a local folder (don't run it off a Parallels/network share) and unblocks the files
-so the PowerShell helper can run:
+Windows, Altium Designer. In PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
+irm https://raw.githubusercontent.com/proven-metal/provenmetal-altium/main/install.ps1 | iex
 ```
 
-It installs to `C:\ProvenMetal\provenmetal-altium\plugin` by default (override with
-`-Dest "D:\path"`) and prints the exact `ProvenMetal.PrjScr` path to open. Then do
-step 2 below.
+Restart Altium. Done — no admin rights, no build tools. The script downloads
+the latest release and registers it with Altium.
 
-### Manual
+Prefer to see what you're running? Download the zip from
+[Releases](https://github.com/proven-metal/provenmetal-altium/releases),
+extract, and run the `install.ps1` inside.
 
-1. Copy the `plugin/` folder to a local Windows path (e.g.
-   `C:\ProvenMetal\provenmetal-altium\plugin\`). Keep `helper\pm_client.ps1`
-   alongside the `.pas` files. If it came from a shared folder, unblock it:
-   `Get-ChildItem -Recurse C:\ProvenMetal\provenmetal-altium\plugin | Unblock-File`.
-2. In Altium: **File > Open Project…** and choose `ProvenMetal.PrjScr`. It appears
-   in the Projects panel and its scripts become runnable.
-3. Run it: **DXP (or the top-left menu) > Run Script…**, pick `ProvenMetal_Main.pas`
-   > `SourceWithProvenMetal`.
+Uninstall: `.\install.ps1 -Uninstall`
 
-Optional — add a toolbar/menu button: **DXP > Customize…**, find the script under
-the *Scripts* category, and drag it onto a toolbar so it runs in one click.
+## Use
 
-If you install the scripts globally (Preferences > System > Scripting) instead of
-opening the project, the plugin can't auto-locate the helper; set `helper_path` in
-`settings.json` (see below) or copy `pm_client.ps1` into the settings folder.
+1. Open your PCB project, and open a schematic or the PCB (the command lives in
+   the editor's menus).
+2. **Tools → Source with ProvenMetal**.
+3. First run: a browser opens to sign in. After that it's cached.
+4. Read the verdict; **Open report** has the full per-part breakdown.
 
-## First run
+Build quantity defaults to 1 board. Set `board_count` in settings (below); it's
+remembered per project after the first push.
 
-1. Open your PCB project and make it the focused project.
-2. Run `SourceWithProvenMetal`. A browser opens for sign-in the first time; the
-   token is cached and refreshed after that.
-3. The BOM is pushed and sourced, a summary dialog appears, and the full report
-   opens in your browser.
+If it says it can't read the BOM, run **Project → Validate** (compile) once and
+try again.
 
-You can also sign in ahead of time with the `ProvenMetalLogin` entry point.
+### Part numbers
 
-## Settings
-
-The only setting most people touch is the ProvenMetal Central URL, which defaults
-to `https://central.provenmetal.com`. Everything for sign-in is fetched from the
-server. Settings live at:
-
-```
-%APPDATA%\provenmetal-altium\settings.json
-```
-
-```jsonc
-{
-  "base_url": "https://central.provenmetal.com",
-  "oauth_provider": "google",
-  "board_count": 10,            // default build quantity (drives "in stock >= build qty")
-  "exclude_dnp": true,          // drop not-fitted / No-BOM parts
-  "writeback": false,           // write results into schematic parameters (see below)
-  "writeback_field_prefix": "PM",
-  "helper_path": "",            // set only if auto-discovery of pm_client.ps1 fails
-  "field_map": {                // set if your schematic uses non-standard names
-    "mpn": "Manufacturer Part Number",
-    "lcsc": "LCSC Part #"
-  }
-}
-```
-
-Set the URL without editing the file via the `ProvenMetalSetBaseUrl` entry point.
-
-### Parameter names detected automatically
-
-Sourcing matches on **MPN** or **LCSC**; Digikey and Mouser numbers are kept as
-extra data. These parameter names are recognised out of the box (pin exact names
-with `field_map` if yours differ):
+Sourcing matches on **MPN** or **LCSC**. These parameter names are picked up
+automatically:
 
 - MPN: `MPN`, `Manufacturer Part Number`, `MFR#`, `Mfr Part #`, `Part Number`
 - Manufacturer: `Manufacturer`, `Mfr`, `MFN`, `Mfg`
 - LCSC: `LCSC`, `LCSC Part #`, `LCSC Part Number`, `JLCPCB Part #`
-- Digikey: `Digikey`, `Digi-Key`, `DigiKey Part Number`, `DK Part #`
-- Mouser: `Mouser`, `Mouser Part Number`, `Mouser #`
+- Digikey / Mouser part numbers are carried along as metadata.
 
-The **value** comes from the component Comment (or a `Value` parameter), the
-**footprint** from the current footprint, and the **description** from the
-component Description. Value + description let the server source passives that have
-no MPN (e.g. "10 uF 16V X5R 0603").
+No MPNs in your schematic? Fine — value + footprint + description is enough to
+source passives ("10uF 16V X5R 0603" finds a real part). Parts that can't be
+identified at all come back as **review**, which is your signal to add a part
+number.
 
-## Sourcing without MPNs
+If your library uses different parameter names, pin them with `field_map` in
+settings.
 
-Most schematics don't carry manufacturer part numbers, and that's fine. The plugin
-sends the value, footprint and description, and the server sources passives from
-those. Parts that genuinely can't be identified (no MPN, LCSC, or usable value)
-come back as **review** — the signal that they need a part number.
+## What gets sent
 
-## Project link
+Designators, values, footprints, descriptions, quantities, and any
+MPN / Manufacturer / LCSC / Digikey / Mouser parameters from the focused
+project. Nothing else — no netlists, no geometry, no files. The link between
+your project and its report is a small `<project>.provenmetal.json` next to
+your project file; it's safe to commit.
 
-The link between an Altium project and its ProvenMetal project is stored in
-`<project>.provenmetal.json` next to the project file. It's safe to commit.
+## Settings
 
-## Writeback (optional)
+`%APPDATA%\provenmetal-altium\settings.json` — all keys optional:
 
-Set `"writeback": true` to write `PM_Status`, `PM_Stock`, `PM_Lead_Days`,
-`PM_Supplier` and `PM_Checked` onto each schematic component (matched by
-designator), as hidden parameters, in one undoable transaction. It is best-effort
-and never blocks the sourcing result.
+```jsonc
+{
+  "base_url": "https://central.provenmetal.com",
+  "board_count": 10,
+  "exclude_dnp": true,                    // drop parts a variant marks Not Fitted
+  "field_map": { "mpn": "PartNumber" },   // your parameter name -> canonical column
+  "debug": false                          // verbose per-component logging
+}
+```
 
-## Assembly variants
-
-If a project variant is active, components that are **Not Fitted** in that variant
-are treated as DNP (dropped when `exclude_dnp` is true). "Standard (No BOM)",
-graphical and net-tie components are always excluded.
-
-## Sign-in details (server side)
-
-Same contract as the KiCad plugin. The server must:
-
-1. Serve `GET /api/kicad/config`, accept `POST /api/kicad/bom` and
-   `GET /api/kicad/bom/[projectId]` (bearer token).
-2. Allow-list these Supabase Auth redirect URLs for the desktop sign-in:
-   ```
-   http://127.0.0.1:53682/callback
-   http://127.0.0.1:53683/callback
-   http://127.0.0.1:53684/callback
-   http://127.0.0.1:8976/callback
-   ```
+Log file: `%APPDATA%\provenmetal-altium\last-run.log`
 
 ## Troubleshooting
 
-- **"Could not find helper\pm_client.ps1"** — open `ProvenMetal.PrjScr` as a
-  project, or set `helper_path` in `settings.json`.
-- **"Compile the project…"** — Project > Compile, then run again.
-- **Sign-in window doesn't return** — check that the loopback redirect URLs above
-  are on the Supabase allow-list.
-- **Logs** — `%APPDATA%\provenmetal-altium\last-run.log`, and the raw request /
-  result files in the same folder.
+- **"Compile the project"** — Project → Validate (Compile PCB Project), run again.
+- **No menu item** — open a schematic/PCB document first; the Home page has no
+  Tools menu. Confirm "ProvenMetal" is listed under Extensions and Updates →
+  Installed.
+- **Sign-in never completes** — the login uses a localhost callback on ports
+  53682/53683/53684/8976; a proxy or firewall that blocks those will stall it.
+- Anything else: check the log above, then open an issue with its tail.
 
-## Running the helper standalone (dev)
+## Building from source
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File plugin\helper\pm_client.ps1 -Command login
-powershell -NoProfile -ExecutionPolicy Bypass -File plugin\helper\pm_client.ps1 -Command config
-powershell -NoProfile -ExecutionPolicy Bypass -File plugin\helper\pm_client.ps1 -Command logout
-```
+The extension is C# (.NET Framework 4.8) in `extension/`. `Build.ps1` copies the
+two SDK DLLs out of your Altium install and builds with MSBuild — see
+[extension/README.md](extension/README.md).
+
+There is also a script-only edition in `plugin/` (DelphiScript + a PowerShell
+helper) that needs no compiler at all: [plugin/README.md](plugin/README.md).
+
+Want to try it without a real design? `sample/MakeSampleBom.pas` drops six test
+components with part numbers onto a blank schematic.
+
+## Server
+
+Talks to ProvenMetal Central over HTTPS — the same `/api/kicad/*` API as our
+[KiCad plugin](https://github.com/proven-metal/provenmetal-kicad). Run your own
+instance? Point `base_url` at it.
+
+## License
+
+MIT

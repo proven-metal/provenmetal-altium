@@ -106,7 +106,7 @@ namespace ProvenMetal.Central
             if (!interactive) throw new AuthException("Not signed in. Run login first.");
 
             if (progress != null) progress("Opening your browser to sign in ...");
-            var loggedIn = DoLogin(config);
+            var loggedIn = DoLogin(config, progress);
             return (string)loggedIn["access_token"];
         }
 
@@ -169,7 +169,7 @@ namespace ProvenMetal.Central
         private static string B64Url(byte[] b)
             => Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-        private JObject DoLogin(ServerConfig config, int timeoutSecs = 300)
+        private JObject DoLogin(ServerConfig config, Action<string> progress = null, int timeoutSecs = 300)
         {
             // PKCE pair
             byte[] rnd = new byte[64];
@@ -192,8 +192,14 @@ namespace ProvenMetal.Central
             Dictionary<string, string> authResult = null;
             try
             {
-                try { Process.Start(new ProcessStartInfo(authorize) { UseShellExecute = true }); }
+                bool opened = false;
+                try { Process.Start(new ProcessStartInfo(authorize) { UseShellExecute = true }); opened = true; }
                 catch { }
+                if (progress != null)
+                {
+                    if (opened) progress("Waiting for the browser sign-in to finish ...");
+                    else progress("Couldn't open a browser. Sign in at this URL, then return here: " + authorize);
+                }
 
                 DateTime deadline = DateTime.UtcNow.AddSeconds(timeoutSecs);
                 while (DateTime.UtcNow < deadline && authResult == null)

@@ -77,6 +77,16 @@ namespace ProvenMetal.Central
             JObject body = BuildRequest(name, boardCount, projectId, lines);
 
             var res = DoPost(token, body);
+
+            // Cached session no longer valid: sign in again once and retry.
+            if (res.Status == 401)
+            {
+                Report(progress, "Session expired - signing in again ...");
+                auth.Logout();
+                token = auth.GetAccessToken(config, true, progress);
+                res = DoPost(token, body);
+            }
+
             if ((res.Status == 404 || res.Status == 403) && !string.IsNullOrEmpty(projectId))
             {
                 warnings.Add("The previously linked ProvenMetal project no longer exists; a new one was created.");

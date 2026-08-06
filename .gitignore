@@ -21,6 +21,8 @@ extension/ProvenMetal/bin/
 extension/ProvenMetal/obj/
 extension/dist/
 extension/packages/
+extension/release-staging/
+extension/ProvenMetal-Altium-*.zip
 # Altium SDK DLLs are copied in by Build.ps1 - never commit them
 extension/Assemblies/*.dll
 
