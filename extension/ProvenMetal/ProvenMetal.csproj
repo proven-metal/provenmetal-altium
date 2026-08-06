@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B1E8B2A0-1C2D-4E3F-9A5B-6C7D8E9F0A11}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ProvenMetal</RootNamespace>
+    <AssemblyName>ProvenMetal</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <!-- Restore PackageReference deps (Newtonsoft.Json) without nuget.exe. -->
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <!-- Altium SDK assemblies. Build.ps1 copies these out of your Altium install
+       into .\Assemblies\ before building. They are provided by Altium at runtime,
+       so they are NOT packaged into the extension. -->
+  <ItemGroup>
+    <Reference Include="Altium.SDK">
+      <HintPath>..\Assemblies\Altium.SDK.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Altium.SDK.Interfaces">
+      <HintPath>..\Assemblies\Altium.SDK.Interfaces.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Framework references -->
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="PluginFactory.cs" />
+    <Compile Include="ProvenMetalModule.cs" />
+    <Compile Include="Altium\AltiumApi.cs" />
+    <Compile Include="Altium\BomExtractor.cs" />
+    <Compile Include="Altium\Writeback.cs" />
+    <Compile Include="Core\Models.cs" />
+    <Compile Include="Core\Fields.cs" />
+    <Compile Include="Core\Grouping.cs" />
+    <Compile Include="Core\Verdict.cs" />
+    <Compile Include="Central\Settings.cs" />
+    <Compile Include="Central\Auth.cs" />
+    <Compile Include="Central\CentralClient.cs" />
+    <Compile Include="UI\ResultsForm.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+  <!-- Extension manifests copied next to the DLL. -->
+  <ItemGroup>
+    <Content Include="ProvenMetal.Ins">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ProvenMetal.rcs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

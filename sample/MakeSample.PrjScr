@@ -1,0 +1,9 @@
+[Design]
+Version=1.0
+
+[Document1]
+DocumentPath=MakeSampleBom.pas
+
+[Parameter1]
+Name=Author
+Value=ProvenMetal

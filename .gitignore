@@ -1,0 +1,29 @@
+# Altium script build / history artifacts
+__History/
+__Previews/
+*.PrjScrStructure
+*.~*
+
+# Local plugin settings / credentials (never commit)
+settings.json
+auth-*.json
+last-run.log
+request.json
+result.txt
+result.txt.tmp
+auth-result.txt
+
+# Project link written next to a design (commit that from the design repo, not here)
+*.provenmetal.json
+
+# C# extension build artifacts
+extension/ProvenMetal/bin/
+extension/ProvenMetal/obj/
+extension/dist/
+extension/packages/
+# Altium SDK DLLs are copied in by Build.ps1 - never commit them
+extension/Assemblies/*.dll
+
+# OS
+.DS_Store
+Thumbs.db

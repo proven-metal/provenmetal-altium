@@ -1,0 +1,13 @@
+{
+  "base_url": "https://central.provenmetal.com",
+  "oauth_provider": "google",
+  "board_count": 10,
+  "exclude_dnp": true,
+  "writeback": false,
+  "writeback_field_prefix": "PM",
+  "helper_path": "",
+  "field_map": {
+    "mpn": "Manufacturer Part Number",
+    "lcsc": "LCSC Part #"
+  }
+}

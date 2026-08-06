@@ -1,0 +1,23 @@
+PL 
+    ProvenMetal:SourceBom
+	Command='ProvenMetal:SourceBom'
+	Caption='Source with ProvenMetal'
+	Image=''
+	Shortcut1=''
+	Shortcut2=''
+	Params=''
+	Description='Push the BOM to ProvenMetal Central and show the sourcing verdict'
+End
+
+Insertion _User1 TargetID='MNSchematic_Tools10' RefID0='SchDoc_Tools' 
+    Link _User2 PLID='ProvenMetal:SourceBom'      End
+End
+Insertion _User3 TargetID='MNPCB_Tools10' RefID0='PcbDoc_Tools' 
+    Link _User4 PLID='ProvenMetal:SourceBom'      End
+End
+Insertion _User5 TargetID='MNSchematicMenu' InsertType='After' RefID0='MNSchematic_Help10' 
+    Link _User6 PLID='ProvenMetal:SourceBom'      End
+End
+Insertion _User7 TargetID='MNPCBMenu' InsertType='After' RefID0='MNPCB_Help10' 
+    Link _User8 PLID='ProvenMetal:SourceBom'      End
+End
