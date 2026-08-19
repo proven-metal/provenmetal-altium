@@ -1,0 +1,27 @@
+name: CI
+
+# Runs the core-logic unit tests. The Altium extension itself targets
+# .NET Framework 4.8 and references Altium's proprietary SDK DLLs, so it can only
+# be built on a Windows box with Altium installed and is not built here. The
+# tested logic (verdict rule, field mapping, BOM grouping) is CAD-independent and
+# runs on a modern cross-platform TFM, so it is exercised on a plain Linux runner.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        run: dotnet test tests/ProvenMetal.Core.Tests/ProvenMetal.Core.Tests.csproj --configuration Release

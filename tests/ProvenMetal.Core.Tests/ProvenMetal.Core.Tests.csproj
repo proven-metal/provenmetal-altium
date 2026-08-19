@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit tests for the port-critical, CAD-independent core logic (verdict rule,
+    field-name mapping, BOM row grouping). These are the C# analogue of the KiCad
+    plugin's tests/ and assert identical behaviour so the two plugins stay in sync.
+
+    The extension proper targets .NET Framework 4.8 and references Altium's SDK
+    DLLs, so it can only be built on a Windows box with Altium installed. The core
+    logic under test, however, only touches the BCL, so this test project links
+    those source files directly and targets a modern, cross-platform TFM. That
+    means `dotnet test` runs anywhere (dev laptop, Linux CI) without Altium.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+    <!-- The linked core sources predate some newer analyzer defaults; keep the
+         test build quiet so real failures stand out. -->
+    <NoWarn>$(NoWarn);CS0649;CS0169</NoWarn>
+  </PropertyGroup>
+
+  <!-- Link the portable core sources from the extension. We deliberately do NOT
+       include Central/, Altium/ or UI/ (Newtonsoft, Altium SDK, WinForms). -->
+  <ItemGroup>
+    <Compile Include="../../extension/ProvenMetal/Core/Fields.cs">
+      <Link>Linked/Fields.cs</Link>
+    </Compile>
+    <Compile Include="../../extension/ProvenMetal/Core/Grouping.cs">
+      <Link>Linked/Grouping.cs</Link>
+    </Compile>
+    <Compile Include="../../extension/ProvenMetal/Core/Verdict.cs">
+      <Link>Linked/Verdict.cs</Link>
+    </Compile>
+    <Compile Include="../../extension/ProvenMetal/Core/Models.cs">
+      <Link>Linked/Models.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Fixtures copied from the KiCad plugin so both suites exercise the same BOM. -->
+  <ItemGroup>
+    <None Include="fixtures/**/*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>
