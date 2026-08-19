@@ -1,0 +1,67 @@
+# Sign a published release installer via SignPath.io, then re-attach the signed
+# .exe to the GitHub release. Manual-dispatch only, so it never runs (or fails)
+# until SignPath is configured (see SIGNING.md).
+#
+# IMPORTANT — read SIGNING.md before relying on this. SignPath Foundation (the
+# free OSS program) requires that the signed artifact be BUILT on GitHub-hosted
+# runners so it can verify build origin. The ProvenMetal extension DLL requires
+# Altium's proprietary SDK and cannot be built on GitHub-hosted runners, so this
+# workflow (which signs an externally built installer downloaded from the release)
+# only works under a SignPath signing policy that permits externally built
+# artifacts — not the standard Foundation OSS origin rules. It is provided as
+# ready-to-use scaffolding for whichever SignPath plan/policy you end up on.
+
+name: Sign release (SignPath)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sign (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write   # download + re-upload the release asset
+  actions: read     # SignPath action reads job/artifact details
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the unsigned installer from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p unsigned
+          gh release download "${{ inputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern 'ProvenMetal-Altium-Setup-*.exe' \
+            --dir unsigned
+          ls -l unsigned
+
+      - name: Upload as a workflow artifact (required by SignPath)
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: provenmetal-installer-unsigned
+          path: unsigned/*.exe
+
+      - name: Submit signing request to SignPath
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          # artifact-configuration-slug: <set if not using the project default>
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Re-attach the signed installer to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l signed
+          gh release upload "${{ inputs.tag }}" signed/*.exe \
+            --repo "${{ github.repository }}" --clobber
