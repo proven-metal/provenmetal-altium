@@ -27,6 +27,10 @@ extension/ProvenMetal-Altium-*.zip
 # Test build artifacts
 tests/**/bin/
 tests/**/obj/
+
+# Installer build output (the .exe is published as a release asset, not committed)
+extension/installer/*.exe
+extension/installer/Output/
 # Altium SDK DLLs are copied in by Build.ps1 - never commit them
 extension/Assemblies/*.dll
 
